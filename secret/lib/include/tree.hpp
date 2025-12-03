@@ -17,7 +17,6 @@ protected:
   using NodeT = BSTNode<Key>;
   NodeT *root;
 
-  // 1. 修正 BST 插入逻辑：不再在递归返回时冗余设置 parent 指针
   virtual NodeT *insertNode(NodeT *node, int key, NodeT *parent);
   NodeT *searchNode(NodeT *node, int key);
   void transplant(NodeT *u, NodeT *v);
@@ -26,14 +25,12 @@ protected:
   NodeT *maximumNode(NodeT *node);
   NodeT *successorNode(NodeT *node);
 
-  // 2. 修正旋转逻辑，确保所有父节点指针更新正确
   NodeT *rotateLeft(NodeT *z);
   NodeT *rotateRight(NodeT *z);
 
 public:
   virtual ~BinarySearchTree() = default;
 
-  // Constructor
   BinarySearchTree();
   BinarySearchTree(std::initializer_list<int> list);
   virtual BinarySearchTree &operator=(std::initializer_list<int> list);
@@ -60,7 +57,6 @@ public:
 template <KeyComparble Key> class AVLTree : public BinarySearchTree<Key> {
 protected:
   using NodeT = BSTNode<Key>;
-  // 3. 修正 balance 签名：删除 key 参数，仅依赖节点结构进行平衡
   NodeT *balance(NodeT *node);
 
   NodeT *insertNode(NodeT *node, int key, NodeT *parent) override;
@@ -101,7 +97,6 @@ BinarySearchTree<Key>::operator=(std::initializer_list<int> list) {
   return *this;
 }
 
-// 修正 1: 移除冗余的 parent 赋值 (Test 4 Fix)
 template <KeyComparble Key>
 BSTNode<Key> *BinarySearchTree<Key>::insertNode(NodeT *node, int key,
                                                 NodeT *parent) {
@@ -116,10 +111,8 @@ BSTNode<Key> *BinarySearchTree<Key>::insertNode(NodeT *node, int key,
   // recursively search for appropriate place
   if (key < node->key) {
     node->left = insertNode(node->left, key, node);
-    // node->left->parent = node; // 移除冗余赋值
   } else {
     node->right = insertNode(node->right, key, node);
-    // node->right->parent = node; // 移除冗余赋值
   }
   return node; // return parent node, recursively return root
 }
@@ -213,25 +206,20 @@ BSTNode<Key> *BinarySearchTree<Key>::successorNode(NodeT *node) {
   return parent;
 }
 
-// 修正 2: 修正 rotateLeft，确保 parent 链接正确 (Test 6, 8, 9 核心修复)
 template <KeyComparble Key>
 BSTNode<Key> *BinarySearchTree<Key>::rotateLeft(NodeT *z) {
   NodeT *y = z->right;
   NodeT *T2 = y->left;
   NodeT *z_parent = z->parent;
 
-  // 1. 执行旋转
   y->left = z;
   z->right = T2;
 
-  // 2. 更新 T2 的 parent
   if (T2)
     T2->parent = z;
 
-  // 3. 更新 z 的 parent
   z->parent = y;
 
-  // 4. 更新 y (新根) 的 parent，并链接到 z 的祖父节点
   y->parent = z_parent;
   if (z_parent == nullptr) {
     this->root = y;
@@ -241,32 +229,26 @@ BSTNode<Key> *BinarySearchTree<Key>::rotateLeft(NodeT *z) {
     z_parent->right = y;
   }
 
-  // 5. 更新高度
   updateHeight(z);
   updateHeight(y);
 
-  return y; // y 成为新子树的根
+  return y;
 }
 
-// 修正 2: 修正 rotateRight，确保 parent 链接正确 (Test 7, 8, 10, 11 核心修复)
 template <KeyComparble Key>
 BSTNode<Key> *BinarySearchTree<Key>::rotateRight(NodeT *z) {
   NodeT *y = z->left;
   NodeT *T3 = y->right;
   NodeT *z_parent = z->parent;
 
-  // 1. 执行旋转
   y->right = z;
   z->left = T3;
 
-  // 2. 更新 T3 的 parent
   if (T3)
     T3->parent = z;
 
-  // 3. 更新 z 的 parent
   z->parent = y;
 
-  // 4. 更新 y (新根) 的 parent，并链接到 z 的祖父节点
   y->parent = z_parent;
   if (z_parent == nullptr) {
     this->root = y;
@@ -276,11 +258,10 @@ BSTNode<Key> *BinarySearchTree<Key>::rotateRight(NodeT *z) {
     z_parent->right = y;
   }
 
-  // 5. 更新高度
   updateHeight(z);
   updateHeight(y);
 
-  return y; // y 成为新子树的根
+  return y; 
 }
 
 template <KeyComparble Key> BSTNode<Key> *BinarySearchTree<Key>::getRoot() {
@@ -364,30 +345,23 @@ AVLTree<Key> &AVLTree<Key>::operator=(std::initializer_list<int> list) {
   return *this;
 }
 
-// 修正 4: 修正 balance 函数，基于平衡因子进行旋转判断 (Test 10, 11 Fix)
 template <KeyComparble Key>
 BSTNode<Key> *AVLTree<Key>::balance(NodeT *node) {
-  this->updateHeight(node); // 确保高度最新
+  this->updateHeight(node); 
 
   int balance = this->getBalance(node);
 
-  // Left Heavy (LL 或 LR)
   if (balance > 1) {
-    // 左子树的平衡因子 < 0: LR case (先左旋再右旋)
     if (this->getBalance(node->left) < 0) {
       node->left = this->rotateLeft(node->left);
     }
-    // LL case 或 LR case 的最后一步: 右旋
     return this->rotateRight(node);
   }
 
-  // Right Heavy (RR 或 RL)
   if (balance < -1) {
-    // 右子树的平衡因子 > 0: RL case (先右旋再左旋)
     if (this->getBalance(node->right) > 0) {
       node->right = this->rotateRight(node->right);
     }
-    // RR case 或 RL case 的最后一步: 左旋
     return this->rotateLeft(node);
   }
 
@@ -412,7 +386,6 @@ BSTNode<Key> *AVLTree<Key>::insertNode(NodeT *node, int key, NodeT *parent) {
   } else
     return node; // Duplicate keys not allowed
 
-  // 修正 5: 插入后调用新的 balance 函数
   return balance(node);
 }
 
@@ -469,15 +442,11 @@ BSTNode<Key> *AVLTree<Key>::deleteNode(NodeT *root, NodeT *node) {
     delete node;
   }
 
-  // 从 rebalanceStart 开始向上追溯并进行平衡
   NodeT *cur = (rebalanceStart) ? rebalanceStart : parent;
 
   while (cur != nullptr) {
-    // 修正 6: 删除后调用新的 balance 函数
     NodeT *newSubRoot = balance(cur);
 
-    // 旋转函数已更新 this->root 和 parent 指针，
-    // 我们可以直接通过 newSubRoot->parent 上溯。
     cur = newSubRoot->parent;
   }
 
@@ -495,5 +464,6 @@ template <KeyComparble Key> BSTNode<Key> *AVLTree<Key>::search(int key) {
 template <KeyComparble Key> void AVLTree<Key>::remove(int key) {
   deleteNode(this->root, this->searchNode(this->root, key));
 }
+
 
 } // namespace TREE
